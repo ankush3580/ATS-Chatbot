@@ -1,0 +1,21 @@
+Data Science Intern
+
+We are looking for a Data Science Intern to work on machine learning and data analytics projects.
+
+Responsibilities:
+- Analyze datasets using Python and SQL.
+- Build and evaluate machine learning models.
+- Perform data preprocessing and feature engineering.
+- Create reports and visualizations.
+- Work with the data science team on real-world problems.
+
+Requirements:
+- Python
+- SQL
+- Machine Learning
+- Pandas
+- NumPy
+- Scikit-learn
+- Data Visualization
+- Statistics
+- Problem Solving

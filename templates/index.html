@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>ATS Resume Analyzer</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+
+<body>
+
+<div class="container">
+
+    <header>
+
+        <h1>ATS Resume Analyzer</h1>
+
+        <p>
+            Upload your resume and compare it with a job description.
+        </p>
+
+    </header>
+
+
+    {% if error %}
+
+        <div class="error">
+            {{ error }}
+        </div>
+
+    {% endif %}
+
+
+    <form method="POST"
+          enctype="multipart/form-data"
+          class="analysis-form">
+
+        <div class="form-group">
+
+            <label for="resume">
+                Upload Resume (PDF)
+            </label>
+
+            <input
+                type="file"
+                id="resume"
+                name="resume"
+                accept=".pdf"
+                required
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label for="jd_text">
+                Job Description
+            </label>
+
+            <textarea
+                id="jd_text"
+                name="jd_text"
+                rows="12"
+                placeholder="Paste the job description here..."
+                required
+            >{{ jd_text }}</textarea>
+
+        </div>
+
+
+        <button type="submit">
+            Analyze Resume
+        </button>
+
+    </form>
+
+
+    <!--
+        This section is populated by JavaScript
+        after Python extracts the resume text.
+    -->
+
+    <section id="results"
+             class="results"
+             style="display: none;">
+
+        <div class="chatbot-box">
+
+    <div class="chatbot-header">
+        <h3>ATS Assistant</h3>
+        <span>Resume Analysis Complete</span>
+    </div>
+
+    <div id="chatbot-message" class="chatbot-message">
+        I have analyzed your resume against the job description.
+    </div>
+
+</div>
+
+        <h2>ATS Analysis Results</h2>
+
+
+        <div class="score-card">
+
+            <h3>ATS Score</h3>
+
+            <div id="ats-score"
+                 class="score">
+                0%
+            </div>
+
+        </div>
+
+
+        <div class="score-card">
+
+            <h3>Resume-JD Similarity</h3>
+
+            <div id="similarity-score"
+                 class="score">
+                0%
+            </div>
+
+        </div>
+
+
+        <div class="skills-section">
+
+
+            <div class="skill-box">
+
+                <h3>Matching Skills</h3>
+
+                <ul id="matching-skills"></ul>
+
+            </div>
+
+
+            <div class="skill-box">
+
+                <h3>Missing Skills</h3>
+
+                <ul id="missing-skills"></ul>
+
+            </div>
+
+
+        </div>
+
+
+        <div class="skill-box">
+
+            <h3>Skills Found in Resume</h3>
+
+            <ul id="resume-skills"></ul>
+
+        </div>
+
+
+        <div class="skill-box">
+
+            <h3>Skills Detected in Job Description</h3>
+
+            <ul id="jd-skills"></ul>
+
+        </div>
+
+
+        <div class="suggestions">
+
+            <h3>Resume Improvement Suggestions</h3>
+
+            <ol id="suggestions-list"></ol>
+
+        </div>
+
+    </section>
+
+</div>
+
+
+<!--
+    Python safely passes the extracted PDF text
+    into JavaScript.
+-->
+
+<script>
+
+    const resumeText =
+        {{ resume_text | tojson }};
+
+</script>
+
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+
+
+<script>
+
+    /*
+     * Run the ATS engine after the page loads
+     * if Python successfully extracted resume text.
+     */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    async function () {
+
+        try {
+
+            await loadSkills();
+
+            if (!resumeText || !resumeText.trim()) {
+                return;
+            }
+
+            const jdText =
+                document.getElementById("jd_text").value;
+
+            if (!jdText.trim()) {
+                return;
+            }
+
+            const result =
+                analyzeResume(
+                    resumeText,
+                    jdText
+                );
+
+            displayResults(result);
+
+        } catch (error) {
+
+            console.error(
+                "ATS initialization error:",
+                error
+            );
+
+        }
+
+    }
+);
+
+
+    /*
+     * Display JavaScript ATS results.
+     */
+
+   function displayResults(result) {
+
+    document.getElementById("results")
+        .style.display = "block";
+
+
+    document.getElementById("ats-score")
+        .textContent =
+        result.atsScore + "%";
+
+
+    document.getElementById("similarity-score")
+        .textContent =
+        result.similarity + "%";
+
+
+    /*
+     * Generate the chatbot response dynamically
+     * from the ATS analysis.
+     */
+
+    const chatbotMessage =
+        document.getElementById("chatbot-message");
+
+
+    chatbotMessage.innerHTML =
+        "I analyzed your resume against the job description. " +
+        "Your ATS score is <strong>" +
+        result.atsScore +
+        "%</strong>, with a resume-JD similarity of <strong>" +
+        result.similarity +
+        "%</strong>. " +
+        "I found <strong>" +
+        result.matchingSkills.length +
+        "</strong> matching skills and <strong>" +
+        result.missingSkills.length +
+        "</strong> missing skills.";
+
+
+    populateList(
+        "matching-skills",
+        result.matchingSkills
+    );
+
+
+    populateList(
+        "missing-skills",
+        result.missingSkills
+    );
+
+
+    populateList(
+        "resume-skills",
+        result.resumeSkills
+    );
+
+
+    populateList(
+        "jd-skills",
+        result.jdSkills
+    );
+
+
+    populateList(
+        "suggestions-list",
+        result.suggestions
+    );
+
+}
